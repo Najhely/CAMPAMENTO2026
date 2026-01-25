@@ -1,0 +1,31 @@
+{% extends 'principal/base.html' %}
+{% block title %}Eliminar Actividad{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+    <div class="bg-red-50 border border-red-200 rounded-lg p-8 text-center">
+        <h1 class="text-3xl font-bold text-red-600 mb-4">⚠️ Eliminar Actividad</h1>
+        
+        <p class="text-gray-700 mb-6 text-lg">
+            ¿Estás seguro de que deseas eliminar la actividad <strong>{{ actividad.titulo }}</strong>?
+        </p>
+
+        <div class="bg-white p-6 rounded-lg mb-6 text-left space-y-2">
+            <p class="text-gray-600"><strong>Título:</strong> {{ actividad.titulo }}</p>
+            <p class="text-gray-600"><strong>Fecha:</strong> {{ actividad.hora_inicio|date:"d/m/Y H:i" }}</p>
+            <p class="text-gray-600"><strong>Ubicación:</strong> {{ actividad.ubicacion }}</p>
+            <p class="text-gray-600"><strong>Tipo:</strong> {% if actividad.es_obligatoria %}🔴 Obligatoria{% else %}🟡 Opcional{% endif %}</p>
+        </div>
+
+        <form method="POST" class="flex gap-4 justify-center">
+            {% csrf_token %}
+            <button type="submit" class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-colors font-bold">
+                🗑️ Sí, Eliminar
+            </button>
+            <a href="{% url 'listar_actividades' %}" class="bg-gray-400 text-white px-6 py-3 rounded-lg hover:bg-gray-500 transition-colors font-bold text-center">
+                ❌ Cancelar
+            </a>
+        </form>
+    </div>
+</div>
+{% endblock %}

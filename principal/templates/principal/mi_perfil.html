@@ -1,0 +1,96 @@
+{% extends 'principal/base.html' %}
+{% block title %}Mi Perfil{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+    <h1 class="text-3xl font-bold mb-6 text-center">Mi Perfil</h1>
+    
+    <!-- Mostrar mensajes -->
+    {% if messages %}
+    <div class="mb-6">
+        {% for message in messages %}
+        <div class="p-4 mb-4 rounded-lg {% if message.tags %}{{ message.tags }}{% endif %}"
+             style="{% if 'error' in message.tags %}background-color: #fee; color: #c33;{% elif 'success' in message.tags %}background-color: #efe; color: #3c3;{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="POST" class="bg-white rounded-lg shadow-md p-6">
+        {% csrf_token %}
+
+        <!-- Información del Usuario (solo lectura) -->
+        <div class="bg-gray-50 p-4 rounded-lg mb-6">
+            <p class="text-gray-600"><strong>Usuario:</strong> {{ usuario.username }}</p>
+            <p class="text-gray-600"><strong>Rol:</strong> {{ usuario.get_rol_display }}</p>
+            <p class="text-gray-600"><strong>Desde:</strong> {{ usuario.date_joined|date:"d/m/Y" }}</p>
+        </div>
+
+        <!-- Datos Personales -->
+        <fieldset class="border border-gray-300 rounded-lg p-4 mb-6">
+            <legend class="text-lg font-semibold px-2">Datos Personales</legend>
+
+            <div class="mb-4">
+                <label for="email" class="block text-gray-700 font-bold mb-2">Email:</label>
+                <input type="email" id="email" name="email" value="{{ usuario.email }}"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       required>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="first_name" class="block text-gray-700 font-bold mb-2">Nombre:</label>
+                    <input type="text" id="first_name" name="first_name" value="{{ usuario.first_name }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="Tu nombre">
+                </div>
+                <div>
+                    <label for="last_name" class="block text-gray-700 font-bold mb-2">Apellido:</label>
+                    <input type="text" id="last_name" name="last_name" value="{{ usuario.last_name }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="Tu apellido">
+                </div>
+            </div>
+        </fieldset>
+
+        <!-- Cambio de Contraseña -->
+        <fieldset class="border border-gray-300 rounded-lg p-4 mb-6">
+            <legend class="text-lg font-semibold px-2">Cambiar Contraseña (Opcional)</legend>
+            <p class="text-gray-600 text-sm mb-4">Completa estos campos solo si deseas cambiar tu contraseña.</p>
+
+            <div class="mb-4">
+                <label for="contrasena_actual" class="block text-gray-700 font-bold mb-2">Contraseña Actual:</label>
+                <input type="password" id="contrasena_actual" name="contrasena_actual"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="Ingresa tu contraseña actual">
+            </div>
+
+            <div class="mb-4">
+                <label for="nueva_contrasena" class="block text-gray-700 font-bold mb-2">Nueva Contraseña:</label>
+                <input type="password" id="nueva_contrasena" name="nueva_contrasena"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="Mínimo 6 caracteres">
+                <small class="text-gray-500">Mínimo 6 caracteres</small>
+            </div>
+
+            <div class="mb-4">
+                <label for="confirmar_contrasena" class="block text-gray-700 font-bold mb-2">Confirmar Contraseña:</label>
+                <input type="password" id="confirmar_contrasena" name="confirmar_contrasena"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="Confirma la nueva contraseña">
+            </div>
+        </fieldset>
+
+        <!-- Botones -->
+        <div class="flex gap-4">
+            <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors font-bold">
+                Guardar Cambios
+            </button>
+            <a href="{% url 'muro' %}" class="bg-gray-400 text-white px-6 py-2 rounded-lg hover:bg-gray-500 transition-colors font-bold text-center">
+                Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

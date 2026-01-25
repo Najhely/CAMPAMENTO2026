@@ -1,0 +1,1064 @@
+{% extends 'principal/base.html' %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto my-10 bg-white p-8 rounded-2xl shadow-sm border border-stone-100">
+    <h2 class="text-2xl font-bold text-stone-800 mb-6 flex items-center gap-2">
+        <span class="p-2 bg-emerald-100 text-emerald-600 rounded-lg">📝</span>
+        Nueva Ficha de Inscripción
+    </h2>
+
+    <!-- Toggle para habilitar inscripción doble -->
+    <div class="mb-6 bg-gradient-to-r from-purple-50 to-blue-50 p-4 rounded-xl border-2 border-purple-200">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <span class="text-2xl">👥</span>
+                <div>
+                    <h3 class="font-bold text-stone-800">Modo de Inscripción</h3>
+                    <p class="text-xs text-stone-600">Inscribe 1 o 2 personas en el mismo grupo</p>
+                </div>
+            </div>
+            <button type="button" 
+                    id="toggle-doble" 
+                    onclick="toggleInscripcionDoble()"
+                    class="px-6 py-3 rounded-xl font-bold transition-all duration-300 shadow-md hover:shadow-lg bg-purple-600 text-white">
+                <span id="toggle-text">🔄 Activar Inscripción Doble</span>
+            </button>
+        </div>
+        <div id="modo-info" class="mt-3 p-3 bg-white rounded-lg hidden">
+            <p class="text-sm text-purple-700">
+                <i class="fas fa-info-circle mr-1"></i>
+                <strong>Modo Doble Activado:</strong> Ambas personas se inscribirán en el mismo grupo y recibirán poleras correlativas.
+            </p>
+        </div>
+    </div>
+
+    <!-- Indicadores de Stock de Poleras -->
+    <div class="mb-6 bg-stone-50 p-4 rounded-xl border border-stone-200">
+        <h3 class="text-sm font-bold text-stone-700 mb-2 flex items-center gap-2">
+            <i class="fas fa-tshirt"></i> Inventario de Poleras
+        </h3>
+        <div class="grid grid-cols-3 gap-3 text-center">
+            <div class="bg-white p-3 rounded-lg shadow-sm">
+                <p class="text-xs text-stone-500">Total en Stock</p>
+                <p class="text-lg font-bold text-blue-600">{{ total_poleras }}</p>
+            </div>
+            <div class="bg-white p-3 rounded-lg shadow-sm">
+                <p class="text-xs text-stone-500">Asignadas</p>
+                <p class="text-lg font-bold text-green-600">
+                    {% with total_asignadas=lista_inscritos.count %}
+                        {{ total_asignadas }}
+                    {% endwith %}
+                </p>
+            </div>
+            <div class="bg-white p-3 rounded-lg shadow-sm">
+                <p class="text-xs text-stone-500">Disponibles</p>
+                <p class="text-lg font-bold text-purple-600">
+                    {{ total_poleras|add:"-lista_inscritos.count" }}
+                </p>
+            </div>
+        </div>
+        
+        {% if poleras_stock %}
+        <div class="mt-3">
+            <p class="text-xs text-stone-500 mb-1">Stock disponible por talla y color:</p>
+            <div class="flex flex-wrap gap-2">
+                {% for polera in poleras_stock %}
+                    {% if polera.stock_actual > 0 %}
+                    <span class="text-xs bg-blue-100 text-blue-800 px-3 py-1.5 rounded">
+                        {{ polera.talla }} | {{ polera.color_nombre }} ({{ polera.stock_actual }})
+                    </span>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <form id="inscripcion-form" method="post" class="space-y-6">
+        {% csrf_token %}
+        
+        <!-- Campo inscripcion_tipo del formulario -->
+        <input type="hidden" name="inscripcion_tipo" id="inscripcion_tipo" value="simple">
+        <input type="hidden" name="inscripcion_doble" id="inscripcion_doble" value="false">
+        
+        <!-- Campos calculados ocultos para persona 1 -->
+        <input type="hidden" name="cambio" id="cambio_hidden" value="0.00">
+        <input type="hidden" name="precio_final" id="precio_final_hidden" value="89.00">
+        
+        <!-- Campos calculados ocultos para persona 2 -->
+        <input type="hidden" name="cambio_2" id="cambio_hidden_2" value="0.00">
+        <input type="hidden" name="precio_final_2" id="precio_final_hidden_2" value="89.00">
+        
+        <!-- PERSONA 1 (siempre visible) -->
+        <div id="persona1-container" class="bg-emerald-50 p-6 rounded-xl border-2 border-emerald-200">
+            <h3 class="font-bold text-emerald-800 mb-4 flex items-center gap-2">
+                <span class="bg-emerald-600 text-white w-8 h-8 rounded-full flex items-center justify-center">1</span>
+                Primera Persona
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-stone-600">Nombre Completo</label>
+                    {{ form.nombre_persona }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-stone-600">Iglesia</label>
+                    {{ form.iglesia }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-stone-600">Unión de jóvenes</label>
+                    {{ form.union }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-stone-600">Edad</label>
+                    {{ form.edad }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-stone-600">Sexo</label>
+                    {{ form.sexo }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-stone-600">Talla Polera (Opcional)</label>
+                    {{ form.talla_polera }}
+                </div>
+            </div>
+
+            <!-- Control de Pagos Persona 1 -->
+            <div class="bg-white p-4 rounded-xl border border-stone-200 mt-4">
+                <h4 class="text-sm font-bold text-stone-500 uppercase mb-3">Control de Pagos - Persona 1</h4>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-stone-500">Costo Total</label>
+                        <input type="number" 
+                               name="costo_total" 
+                               value="{{ form.costo_total.value|default:'0' }}" 
+                               readonly 
+                               class="w-full p-3 rounded-xl border-none ring-1 ring-stone-200 bg-stone-100 text-stone-700 cursor-not-allowed text-sm"
+                               step="0.01">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-stone-500">Descuento (%)</label>
+                        {{ form.descuento }}
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <label class="block text-xs text-stone-500">Cuánto Paga (Bs)</label>
+                    {{ form.paga }}
+                </div>
+                <div id="price-preview-1" class="text-sm text-stone-500 mt-3 space-y-1">
+                    <div>Precio Final: Bs <span id="precio_final_preview_1">0</span></div>
+                    <div>Cambio: Bs <span id="cambio_preview_1">0</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PERSONA 2 (inicialmente oculto) -->
+        <div id="persona2-container" class="bg-blue-50 p-6 rounded-xl border-2 border-blue-200 hidden">
+            <h3 class="font-bold text-blue-800 mb-4 flex items-center gap-2">
+                <span class="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center">2</span>
+                Segunda Persona
+                <span class="text-xs bg-blue-600 text-white px-2 py-1 rounded-full ml-auto">Mismo Grupo</span>
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-stone-600">Nombre Completo</label>
+                    <input type="text" 
+                           name="nombre_persona_2" 
+                           id="nombre_persona_2"
+                           class="w-full p-3 rounded-xl border-none ring-1 ring-stone-200 focus:ring-2 focus:ring-blue-500 bg-white">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-stone-600">Iglesia</label>
+                    <select name="iglesia_2" 
+                            id="iglesia_2"
+                            class="w-full p-3 rounded-xl border-none ring-1 ring-stone-200 focus:ring-2 focus:ring-blue-500 bg-white">
+                        <option value="">---------</option>
+                        {% for iglesia in form.fields.iglesia.queryset %}
+                        <option value="{{ iglesia.id }}">{{ iglesia.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-stone-600">Unión de jóvenes</label>
+                    <select name="union_2" 
+                            id="union_2"
+                            class="w-full p-3 rounded-xl border-none ring-1 ring-stone-200 focus:ring-2 focus:ring-blue-500 bg-white">
+                        <option value="">---------</option>
+                        {% for union in form.fields.union.queryset %}
+                        <option value="{{ union.id }}">{{ union.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-stone-600">Edad</label>
+                    <input type="number" 
+                           name="edad_2" 
+                           id="edad_2"
+                           class="w-full p-3 rounded-xl border-none ring-1 ring-stone-200 focus:ring-2 focus:ring-blue-500 bg-white">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-stone-600">Sexo</label>
+                    <select name="sexo_2" 
+                            id="sexo_2"
+                            class="w-full p-3 rounded-xl border-none ring-1 ring-stone-200 focus:ring-2 focus:ring-blue-500 bg-white">
+                        <option value="">---------</option>
+                        <option value="M">Masculino</option>
+                        <option value="F">Femenino</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-stone-600">Talla Polera (Opcional)</label>
+                    <select name="talla_polera_2" 
+                            id="talla_polera_2"
+                            class="w-full p-3 rounded-xl border-none ring-1 ring-stone-200 focus:ring-2 focus:ring-blue-500 bg-white">
+                        <option value="">--- Seleccionar talla ---</option>
+                        {% for talla in tallas_disponibles %}
+                        <option value="{{ talla }}">Talla {{ talla }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Control de Pagos Persona 2 -->
+            <div class="bg-white p-4 rounded-xl border border-stone-200 mt-4">
+                <h4 class="text-sm font-bold text-stone-500 uppercase mb-3">Control de Pagos - Persona 2</h4>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-stone-500">Costo Total</label>
+                        <input type="number" 
+                               name="costo_total_2" 
+                               id="costo_total_2"
+                               value="{{ form.costo_total.value|default:'0' }}" 
+                               readonly 
+                               class="w-full p-3 rounded-xl border-none ring-1 ring-stone-200 bg-stone-100 text-stone-700 cursor-not-allowed text-sm"
+                               step="0.01">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-stone-500">Descuento (%)</label>
+                        <input type="number" 
+                               name="descuento_2" 
+                               id="descuento_2"
+                               value="0" 
+                               min="0" 
+                               max="100" 
+                               step="0.01"
+                               class="w-full p-3 rounded-xl border-none ring-1 ring-stone-200 focus:ring-2 focus:ring-blue-500 bg-white text-sm">
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <label class="block text-xs text-stone-500">Cuánto Paga (Bs)</label>
+                    <input type="number" 
+                           name="paga_2" 
+                           id="paga_2"
+                           value="0" 
+                           min="0" 
+                           step="0.01"
+                           class="w-full p-3 rounded-xl border-none ring-1 ring-stone-200 focus:ring-2 focus:ring-blue-500 bg-white text-sm">
+                </div>
+                <div id="price-preview-2" class="text-sm text-stone-500 mt-3 space-y-1">
+                    <div>Precio Final: Bs <span id="precio_final_preview_2">0</span></div>
+                    <div>Cambio: Bs <span id="cambio_preview_2">0</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resumen Total (visible solo en modo doble) -->
+        <div id="resumen-total" class="bg-purple-50 p-4 rounded-xl border-2 border-purple-200 hidden">
+            <h4 class="font-bold text-purple-800 mb-3 flex items-center gap-2">
+                <i class="fas fa-calculator"></i> Resumen Total
+            </h4>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
+                <div class="bg-white p-3 rounded-lg">
+                    <p class="text-xs text-stone-500">Total a Cobrar</p>
+                    <p class="text-lg font-bold text-purple-600">Bs <span id="total_cobrar">0.00</span></p>
+                </div>
+                <div class="bg-white p-3 rounded-lg">
+                    <p class="text-xs text-stone-500">Total Pagado</p>
+                    <p class="text-lg font-bold text-green-600">Bs <span id="total_pagado">0.00</span></p>
+                </div>
+                <div class="bg-white p-3 rounded-lg">
+                    <p class="text-xs text-stone-500">Cambio Total</p>
+                    <p class="text-lg font-bold text-blue-600">Bs <span id="cambio_total">0.00</span></p>
+                </div>
+                <div class="bg-white p-3 rounded-lg">
+                    <p class="text-xs text-stone-500">Saldo Pendiente</p>
+                    <p class="text-lg font-bold text-red-600">Bs <span id="saldo_total">0.00</span></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-end gap-3 mt-8">
+            <a href="{% url 'lista_inscritos' %}" class="px-4 py-2 text-stone-500 hover:text-stone-700">Cancelar</a>
+            <button type="submit" class="bg-emerald-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-emerald-700 transition-colors">
+                <i class="fas fa-save mr-2"></i>
+                <span id="submit-text">Registrar Campamentista</span>
+            </button>
+        </div>
+    </form>
+
+    <div class="mt-8 flex gap-3">
+        <button onclick="toggleLista(event)" class="flex-1 bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700">
+            Ver Lista de Inscritos
+        </button>
+        <button onclick="abrirPantallaRuleta()" class="flex-1 bg-purple-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-purple-700">
+            🎯 Abrir Pantalla Ruleta
+        </button>
+    </div>
+
+    <!-- Lista de inscritos -->
+    <div id="lista-container" class="hidden mt-6">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
+            <h3 class="text-xl font-bold mb-4 text-stone-800">Campamentistas Inscritos</h3>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-stone-200">
+                        <tr>
+                            <th class="p-2 text-left">Nombre</th>
+                            <th class="p-2 text-left">Iglesia</th>
+                            <th class="p-2 text-left">Equipo</th>
+                            <th class="p-2 text-left">Polera #</th>
+                            <th class="p-2 text-left">Talla</th>
+                            <th class="p-2 text-left">Color</th>
+                            <th class="p-2 text-left">Edad</th>
+                            <th class="p-2 text-left">Sexo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for inscrito in lista_inscritos %}
+                        <tr class="border-b hover:bg-stone-50">
+                            <td class="p-2">{{ inscrito.nombre_persona }}</td>
+                            <td class="p-2">{{ inscrito.iglesia }}</td>
+                            <td class="p-2">
+                                {% if inscrito.grupo %}
+                                <div class="flex items-center gap-2">
+                                    <div class="w-3 h-3 rounded-full" style="background-color: {% if inscrito.grupo.color_hex %}{{ inscrito.grupo.color_hex }}{% else %}#10B981{% endif %}"></div>
+                                    <span class="font-medium">{{ inscrito.grupo.nombre }}</span>
+                                </div>
+                                {% else %}
+                                <span class="text-stone-400">Sin asignar</span>
+                                {% endif %}
+                            </td>
+                            <td class="p-2">
+                                {% if inscrito.logisticakit and inscrito.logisticakit.polera_numero_id %}
+                                <span class="font-bold">#{{ inscrito.logisticakit.polera_numero_id }}</span>
+                                {% else %}
+                                <span class="text-stone-400">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="p-2">
+                                {% if inscrito.logisticakit and inscrito.logisticakit.polera_talla %}
+                                <span class="px-2 py-1 bg-stone-100 rounded text-xs">{{ inscrito.logisticakit.polera_talla }}</span>
+                                {% else %}
+                                <span class="text-stone-400">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="p-2">
+                                {% if inscrito.grupo and inscrito.grupo.color_hex %}
+                                <div class="flex items-center gap-2">
+                                    <div class="w-4 h-4 rounded-full" style="background-color: {{ inscrito.grupo.color_hex }}"></div>
+                                    <span class="text-xs">{{ inscrito.grupo.color_nombre|default:inscrito.grupo.color_hex }}</span>
+                                </div>
+                                {% else %}
+                                <span class="text-stone-400">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="p-2">{{ inscrito.edad }}</td>
+                            <td class="p-2">{{ inscrito.sexo }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="p-4 text-center text-stone-400">No hay inscritos aún</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECCIÓN DE CONFIRMACIÓN Y ENTREGA DE KIT CORREGIDA -->
+    {% if last %}
+    <div class="max-w-4xl mx-auto my-6 bg-white p-6 rounded-2xl shadow-sm border-2 border-emerald-500">
+        <h3 class="font-bold text-lg mb-4 text-emerald-600 flex items-center gap-2">
+            <i class="fas fa-check-circle"></i> ✅ Registro Completado
+        </h3>
+        
+        <div class="flex items-center gap-4 mb-4">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-xl" 
+                 style="background: {% if last.grupo.color_hex %}{{ last.grupo.color_hex }}{% else %}#10B981{% endif %}">
+                {{ last.grupo.nombre|first|default:"?" }}
+            </div>
+            <div>
+                <div class="font-semibold text-lg">Equipo: 
+                    <span style="color: {% if last.grupo.color_hex %}{{ last.grupo.color_hex }}{% else %}#10B981{% endif %}">
+                        {{ last.grupo.nombre|default:"Por asignar" }}
+                    </span>
+                </div>
+                <div class="text-sm text-stone-500">{{ last.nombre_persona }} - {{ last.iglesia }}</div>
+                <div class="text-xs text-stone-400 mt-1">
+                    Color: {% if last.grupo.color_nombre %}{{ last.grupo.color_nombre }}{% else %}{{ last.grupo.color_hex|default:"Por asignar" }}{% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Información Financiera -->
+        <div class="mb-6 bg-green-50 p-4 rounded-lg border border-green-200">
+            <h4 class="font-semibold text-green-800 text-sm mb-3 flex items-center gap-2">
+                <i class="fas fa-money-bill-wave"></i> Información de Pago
+            </h4>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                <div>
+                    <p class="text-stone-600">Costo total:</p>
+                    <p class="font-semibold">Bs {{ last.costo_total }}</p>
+                </div>
+                <div>
+                    <p class="text-stone-600">Descuento:</p>
+                    <p class="font-semibold">{{ last.descuento }}%</p>
+                </div>
+                <div>
+                    <p class="text-stone-600">Precio final:</p>
+                    <p class="font-semibold text-emerald-600">Bs {{ precio_final|floatformat:2 }}</p>
+                </div>
+                <div>
+                    <p class="text-stone-600">Pagó:</p>
+                    <p class="font-semibold">Bs {{ last.paga|floatformat:2 }}</p>
+                </div>
+                <div>
+                    <p class="text-stone-600">Cambio:</p>
+                    <p class="font-semibold">Bs {{ last.cambio|floatformat:2 }}</p>
+                </div>
+                <div>
+                    <p class="text-stone-600">Saldo:</p>
+                    <span class="px-2 py-1 rounded text-xs font-medium {% if saldo == 0 %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                        Bs {{ saldo|default:"0.00"|floatformat:2 }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN DE CHECKLIST Y ENTREGA DE KIT -->
+        <div class="bg-gradient-to-r from-blue-50 to-purple-50 p-5 rounded-xl border-2 border-blue-300">
+            <h4 class="font-bold text-lg mb-4 text-blue-700 flex items-center gap-2">
+                <i class="fas fa-clipboard-check"></i> CHECK LIST - ENTREGA DE KIT
+            </h4>
+            
+            <!-- Información de polera relacionada con el color -->
+            <div class="mb-4 p-4 bg-white rounded-lg border border-blue-200">
+                <h5 class="font-semibold text-blue-800 mb-3 flex items-center gap-2">
+                    <i class="fas fa-tshirt"></i> POLERA
+                    {% if last.grupo and last.grupo.color_nombre %}
+                    <span class="ml-auto text-sm font-normal px-3 py-1 rounded-full" 
+                          style="background-color: {% if last.grupo.color_hex %}{{ last.grupo.color_hex }}{% else %}#10B981{% endif %}20; 
+                                 color: {% if last.grupo.color_hex %}{{ last.grupo.color_hex }}{% else %}#10B981{% endif %};">
+                        Color: {{ last.grupo.color_nombre }}
+                    </span>
+                    {% endif %}
+                </h5>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Selección de talla -->
+                    <div>
+                        <label class="block text-sm text-stone-600 mb-2">Seleccionar talla disponible:</label>
+                        <select name="polera_talla" id="polera_talla_select" class="w-full p-3 border-2 border-blue-300 rounded-lg bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+                            <option value="">-- Seleccionar talla --</option>
+                            {% if last.grupo and last.grupo.color_nombre %}
+                                <!-- Opción para la talla ya registrada -->
+                                {% if kit and kit.polera_talla %}
+                                <option value="{{ kit.polera_talla }}" selected>
+                                    Talla {{ kit.polera_talla }} (Ya asignada)
+                                </option>
+                                {% endif %}
+                                
+                                <!-- Otras tallas disponibles del mismo color -->
+                                {% for polera in poleras_stock %}
+                                    {% if polera.color_nombre|lower == last.grupo.color_nombre|lower and polera.stock_actual > 0 %}
+                                        {% if polera.talla != kit.polera_talla or not kit.polera_talla %}
+                                        <option value="{{ polera.talla }}">
+                                            Talla {{ polera.talla }} ({{ polera.stock_actual }} disponibles)
+                                        </option>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                <!-- Si no hay stock pero hay talla asignada -->
+                                {% if kit and kit.polera_talla %}
+                                <option value="{{ kit.polera_talla }}" selected>
+                                    Talla {{ kit.polera_talla }} (Sin stock - ya asignada)
+                                </option>
+                                {% endif %}
+                            {% endif %}
+                        </select>
+                    </div>
+                    
+                    <!-- Número de polera asignado -->
+                    <div>
+                        <label class="block text-sm text-stone-600 mb-2">Número asignado:</label>
+                        <div class="p-3 bg-blue-50 border-2 border-blue-300 rounded-lg text-center">
+                            <span class="text-2xl font-bold text-blue-700" id="numero-polera-display">
+                                {% if kit and kit.polera_numero_id %}
+                                    #{{ kit.polera_numero_id }}
+                                {% else %}
+                                    #{{ proximo_numero_polera|default:"0" }}
+                                {% endif %}
+                            </span>
+                            <p class="text-xs text-stone-500 mt-1">Número secuencial por color</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Información de numeración -->
+                <div class="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p class="text-sm text-yellow-700">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        <strong>Numeración:</strong> Cada color comienza desde 0. 
+                        {% if last.grupo.color_nombre == "NARANJA" %}
+                            <strong>Naranja comenzó desde 8</strong>
+                        {% endif %}
+                    </p>
+                </div>
+                
+                <!-- Lista de poleras ya asignadas para este color (para referencia) -->
+                {% if poleras_asignadas_color %}
+                <div class="mt-3 p-3 bg-gray-50 rounded text-xs">
+                    <p class="font-medium text-gray-700 mb-1">Poleras ya asignadas para {{ last.grupo.color_nombre }}:</p>
+                    <div class="flex flex-wrap gap-1">
+                        {% for polera in poleras_asignadas_color %}
+                        <span class="px-2 py-1 bg-gray-200 rounded">
+                            #{{ polera.numero }} ({{ polera.talla }})
+                        </span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Elementos del kit con sus colores -->
+            <div class="space-y-3">
+                <!-- Pañoleta -->
+                <div class="flex items-center justify-between p-4 bg-white rounded-lg border-2 border-blue-200">
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" 
+                               name="pañoleta_entregada" 
+                               id="pañoleta_check"
+                               class="w-5 h-5 rounded border-2 border-blue-400 text-blue-600 focus:ring-blue-300"
+                               {% if kit and kit.pañoleta_entregada %}checked{% endif %}>
+                        <div>
+                            <label for="pañoleta_check" class="font-semibold text-blue-800 cursor-pointer">PAÑOLETA</label>
+                            <p class="text-xs text-stone-500 mt-1">
+                                Color: 
+                                <span class="font-medium" style="color: {% if last.grupo.color_hex %}{{ last.grupo.color_hex }}{% else %}#10B981{% endif %};">
+                                    {{ last.grupo.color_nombre|default:last.grupo.color_hex|default:"Por asignar" }}
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="w-8 h-8 rounded-full" 
+                         style="background-color: {% if last.grupo.color_hex %}{{ last.grupo.color_hex }}{% else %}#10B981{% endif %};">
+                    </div>
+                </div>
+                
+                <!-- Credencial -->
+                <div class="flex items-center justify-between p-4 bg-white rounded-lg border-2 border-blue-200">
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" 
+                               name="credencial_entregada" 
+                               id="credencial_check"
+                               class="w-5 h-5 rounded border-2 border-blue-400 text-blue-600 focus:ring-blue-300"
+                               {% if kit and kit.credencial_entregada %}checked{% endif %}>
+                        <div>
+                            <label for="credencial_check" class="font-semibold text-blue-800 cursor-pointer">CREDENCIAL</label>
+                            <p class="text-xs text-stone-500 mt-1">Identificación del campamentista</p>
+                        </div>
+                    </div>
+                    <span class="text-2xl">🪪</span>
+                </div>
+                
+                <!-- Manilla -->
+                <div class="flex items-center justify-between p-4 bg-white rounded-lg border-2 border-blue-200">
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" 
+                               name="manilla_entregada" 
+                               id="manilla_check"
+                               class="w-5 h-5 rounded border-2 border-blue-400 text-blue-600 focus:ring-blue-300"
+                               {% if kit and kit.manilla_entregada %}checked{% endif %}>
+                        <div>
+                            <label for="manilla_check" class="font-semibold text-blue-800 cursor-pointer">MANILLA</label>
+                            <p class="text-xs text-stone-500 mt-1">
+                                Color: 
+                                <span class="font-medium" style="color: {% if last.grupo.color_hex %}{{ last.grupo.color_hex }}{% else %}#10B981{% endif %};">
+                                    {{ last.grupo.color_nombre|default:last.grupo.color_hex|default:"Por asignar" }}
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="w-8 h-8 rounded-full" 
+                         style="background-color: {% if last.grupo.color_hex %}{{ last.grupo.color_hex }}{% else %}#10B981{% endif %};">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Botón KIT ENTREGADO -->
+            <div class="mt-6 pt-4 border-t border-blue-300">
+                <form method="post" action="{% url 'entregar_kit' last.id %}" class="space-y-4" id="kit-form">
+                    {% csrf_token %}
+                    
+                    <!-- Campos ocultos para el formulario -->
+                    <input type="hidden" name="polera_talla" id="polera_talla_hidden" 
+                           value="{% if kit and kit.polera_talla %}{{ kit.polera_talla }}{% endif %}">
+                    <input type="hidden" name="polera_numero" id="polera_numero_hidden" 
+                           value="{% if kit and kit.polera_numero_id %}{{ kit.polera_numero_id }}{% else %}{{ proximo_numero_polera|default:'0' }}{% endif %}">
+                    
+                    <!-- Botón principal -->
+                    <button type="submit" 
+                            id="kit-entregado-btn"
+                            class="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-4 px-6 rounded-xl text-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                        <i class="fas fa-box-check mr-2"></i>
+                        KIT ENTREGADO
+                    </button>
+                    
+                    <!-- Mensaje de confirmación -->
+                    <p class="text-center text-sm text-stone-500">
+                        Al hacer clic, se marcarán todos los elementos seleccionados como entregados
+                    </p>
+                </form>
+            </div>
+        </div>
+
+        <!-- Notificación de ruleta -->
+        <div class="mt-4 bg-yellow-50 border-l-4 border-yellow-400 p-4">
+            <div class="flex items-center">
+                <span class="text-2xl mr-3">🎯</span>
+                <div>
+                    <p class="text-sm text-yellow-700">
+                        <strong>¡La ruleta se activó automáticamente!</strong><br>
+                        El campamentista puede ver su equipo asignado en la pantalla grande.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Acciones rápidas -->
+        <div class="mt-4 pt-4 border-t border-stone-200">
+            <h5 class="font-semibold mb-3 text-stone-700">Acciones rápidas</h5>
+            <div class="flex flex-col sm:flex-row gap-2">
+                <a href="{% url 'lista_inscritos' %}" 
+                   class="flex-1 bg-stone-200 hover:bg-stone-300 text-stone-800 px-4 py-3 rounded-lg text-center font-medium transition-colors">
+                    <i class="fas fa-list mr-2"></i>Ver todas las inscripciones
+                </a>
+                <a href="{% url 'entregar_kit' last.id %}" 
+                   class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg text-center font-medium transition-colors">
+                    <i class="fas fa-edit mr-2"></i>Editar entrega de kit
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.pulse-animation {
+    animation: pulse 2s infinite;
+}
+
+input[readonly] {
+    background-color: #f9fafb !important;
+    cursor: not-allowed !important;
+}
+
+.talla-badge {
+    transition: all 0.2s ease;
+}
+
+.talla-badge:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+#persona2-container {
+    transition: all 0.3s ease;
+}
+
+#persona2-container.hidden {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    padding: 0;
+    margin: 0;
+    border: none;
+}
+
+#persona2-container:not(.hidden) {
+    max-height: 1000px;
+    opacity: 1;
+}
+</style>
+
+{% endblock content %}
+
+{% block scripts %}
+<script>
+document.head.insertAdjacentHTML('beforeend', '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">');
+
+let modoDoble = false;
+
+function toggleInscripcionDoble() {
+    modoDoble = !modoDoble;
+    const persona2Container = document.getElementById('persona2-container');
+    const resumenTotal = document.getElementById('resumen-total');
+    const modoInfo = document.getElementById('modo-info');
+    const toggleBtn = document.getElementById('toggle-doble');
+    const toggleText = document.getElementById('toggle-text');
+    const submitText = document.getElementById('submit-text');
+    const inscripcionDobleInput = document.getElementById('inscripcion_doble');
+    const inscripcionTipoInput = document.getElementById('inscripcion_tipo');
+    
+    if (modoDoble) {
+        persona2Container.classList.remove('hidden');
+        resumenTotal.classList.remove('hidden');
+        modoInfo.classList.remove('hidden');
+        toggleBtn.className = 'px-6 py-3 rounded-xl font-bold transition-all duration-300 shadow-md hover:shadow-lg bg-red-500 text-white';
+        toggleText.textContent = '❌ Desactivar Inscripción Doble';
+        submitText.textContent = 'Registrar 2 Campamentistas';
+        inscripcionDobleInput.value = 'true';
+        inscripcionTipoInput.value = 'doble';
+        
+        const iglesiaSelect1 = document.querySelector('[name="iglesia"]');
+        const unionSelect1 = document.querySelector('[name="union"]');
+        const iglesiaSelect2 = document.getElementById('iglesia_2');
+        const unionSelect2 = document.getElementById('union_2');
+        
+        if (iglesiaSelect1 && iglesiaSelect2) {
+            iglesiaSelect2.value = iglesiaSelect1.value;
+        }
+        if (unionSelect1 && unionSelect2) {
+            unionSelect2.value = unionSelect1.value;
+        }
+        
+        updateAllPreviews();
+    } else {
+        persona2Container.classList.add('hidden');
+        resumenTotal.classList.add('hidden');
+        modoInfo.classList.add('hidden');
+        toggleBtn.className = 'px-6 py-3 rounded-xl font-bold transition-all duration-300 shadow-md hover:shadow-lg bg-purple-600 text-white';
+        toggleText.textContent = '🔄 Activar Inscripción Doble';
+        submitText.textContent = 'Registrar Campamentista';
+        inscripcionDobleInput.value = 'false';
+        inscripcionTipoInput.value = 'simple';
+        
+        document.getElementById('nombre_persona_2').value = '';
+        document.getElementById('edad_2').value = '';
+        document.getElementById('sexo_2').value = '';
+        document.getElementById('descuento_2').value = '0';
+        document.getElementById('paga_2').value = '0';
+    }
+}
+
+function parseNumber(v){
+    if (!v && v !== 0) return 0;
+    v = String(v).replace(',', '.');
+    const n = parseFloat(v);
+    return isNaN(n) ? 0 : n;
+}
+
+function updatePricePreview(persona = 1){
+    const suffix = persona === 1 ? '' : '_2';
+    const costoEl = document.querySelector(`[name="costo_total${suffix}"]`);
+    const descEl = document.querySelector(`[name="descuento${suffix}"]`);
+    const pagaEl = document.querySelector(`[name="paga${suffix}"]`);
+    
+    if (!costoEl) return { precioFinal: 0, paga: 0, cambio: 0 };
+    
+    const costo = parseNumber(costoEl.value);
+    const desc = parseNumber(descEl ? descEl.value : 0);
+    const paga = parseNumber(pagaEl ? pagaEl.value : 0);
+    const precioFinal = Math.max(0, (costo * (1 - (desc / 100))));
+    const cambio = Math.max(0, paga - precioFinal);
+    
+    const pf = document.getElementById(`precio_final_preview_${persona}`);
+    const cb = document.getElementById(`cambio_preview_${persona}`);
+    
+    if (pf) pf.textContent = precioFinal.toFixed(2);
+    if (cb) cb.textContent = cambio.toFixed(2);
+    
+    // Actualizar campos ocultos para enviar al servidor
+    const cambioHidden = document.getElementById(`cambio_hidden${suffix}`);
+    const precioFinalHidden = document.getElementById(`precio_final_hidden${suffix}`);
+    
+    if (cambioHidden) cambioHidden.value = cambio.toFixed(2);
+    if (precioFinalHidden) precioFinalHidden.value = precioFinal.toFixed(2);
+    
+    return { precioFinal, paga, cambio };
+}
+
+function updateResumenTotal() {
+    if (!modoDoble) return;
+    
+    const p1 = updatePricePreview(1);
+    const p2 = updatePricePreview(2);
+    
+    const totalCobrar = p1.precioFinal + p2.precioFinal;
+    const totalPagado = p1.paga + p2.paga;
+    const cambioTotal = p1.cambio + p2.cambio;
+    const saldoTotal = Math.max(0, totalCobrar - totalPagado);
+    
+    document.getElementById('total_cobrar').textContent = totalCobrar.toFixed(2);
+    document.getElementById('total_pagado').textContent = totalPagado.toFixed(2);
+    document.getElementById('cambio_total').textContent = cambioTotal.toFixed(2);
+    document.getElementById('saldo_total').textContent = saldoTotal.toFixed(2);
+}
+
+function updateAllPreviews() {
+    updatePricePreview(1);
+    updatePricePreview(2);
+    updateResumenTotal();
+}
+
+document.addEventListener('input', function(e){
+    if (!e.target) return;
+    const names = ['costo_total','descuento','paga','costo_total_2','descuento_2','paga_2'];
+    if (names.indexOf(e.target.name) !== -1) {
+        updateAllPreviews();
+    }
+});
+
+document.addEventListener('change', function(e) {
+    if (modoDoble && e.target.name === 'iglesia') {
+        const selectP2 = document.getElementById('iglesia_2');
+        if (selectP2) selectP2.value = e.target.value;
+    }
+    if (modoDoble && e.target.name === 'union') {
+        const selectP2 = document.getElementById('union_2');
+        if (selectP2) selectP2.value = e.target.value;
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    updateAllPreviews();
+    
+    const costoInputs = document.querySelectorAll('[name="costo_total"], [name="costo_total_2"]');
+    costoInputs.forEach(input => {
+        input.addEventListener('mousedown', e => e.preventDefault());
+        input.addEventListener('keydown', e => e.preventDefault());
+        input.addEventListener('focus', function(e) {
+            e.preventDefault();
+            this.blur();
+        });
+    });
+    
+    // CÓDIGO PARA LA ENTREGA DE KIT - CORREGIDO
+    const tallaSelect = document.getElementById('polera_talla_select');
+    const poleraHidden = document.getElementById('polera_talla_hidden');
+    const numeroHidden = document.getElementById('polera_numero_hidden');
+    const numeroDisplay = document.getElementById('numero-polera-display');
+    const kitBtn = document.getElementById('kit-entregado-btn');
+    const kitForm = document.getElementById('kit-form');
+    
+    if (tallaSelect) {
+        // Configurar numeración inicial
+        updatePoleraNumber();
+        
+        tallaSelect.addEventListener('change', function() {
+            // Actualizar campo oculto
+            if (poleraHidden) {
+                poleraHidden.value = this.value;
+            }
+            
+            // Actualizar número de polera
+            updatePoleraNumber();
+            
+            // Habilitar/deshabilitar botón según selección
+            if (kitBtn) {
+                updateKitButtonState();
+            }
+        });
+    }
+    
+    // Configurar checkboxes para habilitar/deshabilitar botón
+    const checkboxes = document.querySelectorAll('#kit-form input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            updateKitButtonState();
+        });
+    });
+    
+    function updatePoleraNumber() {
+        if (!tallaSelect || !numeroDisplay) return;
+        
+        const selectedOption = tallaSelect.options[tallaSelect.selectedIndex];
+        const colorNombre = "{{ last.grupo.color_nombre|default:''|upper }}";
+        const tieneColor = "{{ last.grupo.color_nombre|yesno:'true,false' }}";
+        
+        if (selectedOption && !selectedOption.textContent.includes('Ya asignada')) {
+            // Calcular número basado en el color
+            let numeroBase = 0;
+            
+            // Verificar si es el color NARANJA
+            if (colorNombre === "NARANJA") {
+                numeroBase = 8;
+            }
+            
+            // Agregar conteo de poleras ya asignadas
+            const polerasAsignadas = "{% if poleras_asignadas_color %}{{ poleras_asignadas_color|length }}{% else %}0{% endif %}";
+            numeroBase += parseInt(polerasAsignadas);
+            
+            // Verificar que el número no esté usado (solo si hay color)
+            let contador = 0;
+            if (tieneColor === "true") {
+                while (contador < 100) { // Límite de seguridad
+                    // Verificar si el número ya existe para este color
+                    const existeNumero = false; // Por ahora, siempre false
+                    if (!existeNumero || contador === 0) {
+                        numeroDisplay.textContent = `#${numeroBase}`;
+                        if (numeroHidden) {
+                            numeroHidden.value = numeroBase;
+                        }
+                        break;
+                    }
+                    numeroBase++;
+                    contador++;
+                }
+            } else {
+                // Si no hay color, usar el número calculado
+                numeroDisplay.textContent = `#${numeroBase}`;
+                if (numeroHidden) {
+                    numeroHidden.value = numeroBase;
+                }
+            }
+        }
+    }
+    
+    function updateKitButtonState() {
+        if (!kitBtn) return;
+        
+        // Obtener solo los checkboxes que no están deshabilitados
+        const enabledCheckboxes = document.querySelectorAll('#kit-form input[type="checkbox"]:not([disabled])');
+        
+        // Verificar si al menos un checkbox está marcado
+        const anyChecked = Array.from(enabledCheckboxes).some(cb => cb.checked);
+        const tallaSelected = tallaSelect && tallaSelect.value;
+        
+        // Verificar si ya hay una polera entregada
+        const poleraYaEntregada = "{% if kit and kit.polera_entregada %}true{% else %}false{% endif %}" === "true";
+        const tallaYaAsignada = "{% if kit and kit.polera_talla %}true{% else %}false{% endif %}" === "true";
+        
+        // Si la polera ya está entregada y tiene talla asignada, se considera como válido
+        const poleraValidada = (poleraYaEntregada && tallaYaAsignada) || (tallaSelected && !poleraYaEntregada);
+        
+        // Verificar si al menos un elemento está marcado o si ya todo estaba entregado
+        const tieneElementosEntregados = anyChecked || poleraValidada;
+        
+        if (tieneElementosEntregados) {
+            kitBtn.disabled = false;
+            kitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            kitBtn.classList.add('hover:-translate-y-1', 'hover:shadow-xl');
+        } else {
+            kitBtn.disabled = true;
+            kitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            kitBtn.classList.remove('hover:-translate-y-1', 'hover:shadow-xl');
+        }
+    }
+    
+    // Inicializar estado del botón de kit
+    if (kitBtn) {
+        updateKitButtonState();
+        
+        // Validación antes de enviar el formulario
+        if (kitForm) {
+            kitForm.addEventListener('submit', function(e) {
+                const tallaSeleccionada = tallaSelect ? tallaSelect.value : '';
+                const poleraYaEntregada = "{% if kit and kit.polera_entregada %}true{% else %}false{% endif %}" === "true";
+                const tallaYaAsignada = "{% if kit and kit.polera_talla %}true{% else %}false{% endif %}" === "true";
+                
+                // Verificar si necesitamos una talla
+                if (!poleraYaEntregada && !tallaSeleccionada && !tallaYaAsignada) {
+                    e.preventDefault();
+                    alert('⚠️ Por favor, selecciona una talla de polera antes de marcar el kit como entregado.');
+                    if (tallaSelect) tallaSelect.focus();
+                    return false;
+                }
+                
+                // Verificar si hay al menos un elemento marcado
+                const enabledCheckboxes = document.querySelectorAll('#kit-form input[type="checkbox"]:not([disabled])');
+                const anyChecked = Array.from(enabledCheckboxes).some(cb => cb.checked);
+                const tieneElementos = anyChecked || (poleraYaEntregada && tallaYaAsignada) || (tallaSeleccionada && !poleraYaEntregada);
+                
+                if (!tieneElementos) {
+                    e.preventDefault();
+                    alert('⚠️ Por favor, marca al menos un elemento del kit como entregado.');
+                    return false;
+                }
+                
+                // Confirmación final
+                if (!confirm('¿Estás seguro de marcar este kit como entregado?\nEsta acción no se puede deshacer.')) {
+                    e.preventDefault();
+                    return false;
+                }
+                
+                // Mostrar mensaje de éxito
+                const originalText = kitBtn.innerHTML;
+                kitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Procesando...';
+                kitBtn.disabled = true;
+                
+                // Asegurar que los campos ocultos estén actualizados
+                if (poleraHidden && !poleraHidden.value && tallaSeleccionada) {
+                    poleraHidden.value = tallaSeleccionada;
+                }
+                
+                if (numeroHidden && !numeroHidden.value && numeroDisplay) {
+                    const numero = numeroDisplay.textContent.replace('#', '');
+                    numeroHidden.value = numero;
+                }
+                
+                // Restaurar el botón si hay un error (timeout)
+                setTimeout(() => {
+                    kitBtn.innerHTML = originalText;
+                    kitBtn.disabled = false;
+                }, 5000);
+            });
+        }
+    }
+});
+
+function toggleLista(event) {
+    const container = document.getElementById('lista-container');
+    container.classList.toggle('hidden');
+    
+    const button = event.currentTarget || event.target;
+    if (container.classList.contains('hidden')) {
+        button.textContent = 'Ver Lista de Inscritos';
+    } else {
+        button.textContent = 'Ocultar Lista de Inscritos';
+    }
+}
+
+function abrirPantallaRuleta() {
+    const width = window.screen.width;
+    const height = window.screen.height;
+    window.open(
+        '{% url "pantalla_ruleta" %}', 
+        'RuletaCampamento', 
+        `width=${width},height=${height},left=0,top=0,fullscreen=yes`
+    );
+}
+
+document.getElementById('inscripcion-form').addEventListener('submit', function(e) {
+    if (modoDoble) {
+        const nombre2 = document.getElementById('nombre_persona_2').value.trim();
+        const edad2 = document.getElementById('edad_2').value;
+        const sexo2 = document.getElementById('sexo_2').value;
+        
+        if (!nombre2 || !edad2 || !sexo2) {
+            e.preventDefault();
+            alert('⚠️ Por favor completa todos los campos obligatorios de la segunda persona (Nombre, Edad, Sexo)');
+            return false;
+        }
+    }
+});
+</script>
+{% endblock scripts %}

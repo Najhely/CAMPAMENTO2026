@@ -1,0 +1,225 @@
+{% extends 'principal/base.html' %}
+
+{% block title %}Muro - Campamento{% endblock %}
+
+{% block head_extra %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<style>
+    .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+    .post-card { transition: transform 0.2s; }
+    .post-card:active { transform: scale(0.98); }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+    <header class="sticky top-0 z-50 bg-emerald-700 text-white p-4 shadow-lg flex justify-between items-center">
+        <h1 class="text-xl font-bold flex items-center gap-2">
+            <i class="fas fa-campground"></i> CAMP PRO
+        </h1>
+        <div class="flex items-center gap-4">
+            <div class="w-8 h-8 bg-emerald-800 rounded-full flex items-center justify-center text-xs font-bold">
+                {{ user.username|slice:":2"|upper }}
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-md mx-auto p-4 space-y-6">
+
+        {% if user.is_authenticated %}
+        <section class="bg-white p-4 rounded-3xl shadow-md border-t-4 border-emerald-500">
+            <form method="post" enctype="multipart/form-data" class="space-y-4">
+                {% csrf_token %}
+                {{ form.referencia }}
+                <div class="flex items-center justify-between">
+                    <label for="file-upload" class="cursor-pointer flex items-center gap-2 text-emerald-600 font-semibold text-sm hover:text-emerald-700">
+                        <i class="fas fa-camera text-xl"></i> Foto/Video
+                    </label>
+                    <input type="file" name="archivo" class="hidden" id="file-upload" required>
+                    <button type="submit" class="bg-emerald-600 text-white px-6 py-2 rounded-full font-bold shadow-lg hover:bg-emerald-700 transition transform active:scale-95">
+                        Publicar
+                    </button>
+                </div>
+            </form>
+        </section>
+        {% endif %}
+
+        {% for noticia in noticias %}
+        <div class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-2xl shadow-sm">
+            <div class="flex gap-3">
+                <i class="fas fa-bullhorn text-amber-600 mt-1"></i>
+                <div>
+                    <h3 class="font-bold text-sm uppercase text-amber-900">{{ noticia.titulo }}</h3>
+                    <p class="text-xs text-stone-700 leading-relaxed">{{ noticia.contenido }}</p>
+                    <span class="text-[10px] text-stone-400 mt-1 block">{{ noticia.fecha_publicacion|timesince }} atrás</span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <section class="space-y-6">
+            {% for post in publicaciones %}
+            <div class="post-card bg-white rounded-3xl shadow-sm overflow-hidden border border-stone-100">
+                <div class="p-4 flex items-center gap-3">
+                    <div class="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-700 font-bold">
+                        {{ post.usuario.username|slice:":2"|upper }}
+                    </div>
+                    <div>
+                        <p class="text-sm font-bold">{{ post.usuario.username }}</p>
+                        <p class="text-[10px] text-stone-400 uppercase font-medium">{{ post.usuario.perfil.grupo.nombre|default:"Campamentista" }}</p>
+                    </div>
+                </div>
+
+                {% if post.archivo %}
+                    <div class="bg-stone-200">
+                        {% if post.es_video %}
+                            <video src="{{ post.archivo.url }}" controls class="w-full aspect-square object-cover bg-black"></video>
+                        {% else %}
+                            <img src="{{ post.archivo.url }}" alt="Imagen" class="w-full aspect-square object-cover">
+                        {% endif %}
+                    </div>
+                {% endif %}
+
+                <div class="p-4 space-y-3">
+                    <!-- Likes y Comentarios -->
+                    <div class="flex gap-5 text-xl">
+                        {% if user.is_authenticated %}
+                            <!-- Like Button -->
+                            <button onclick="toggleLike({{ post.id }}, this)" class="like-btn text-stone-600 hover:text-red-500 transition" data-post-id="{{ post.id }}">
+                                {% if post.id in user_likes %}
+                                    <i class="fas fa-heart text-red-500"></i>
+                                {% else %}
+                                    <i class="far fa-heart"></i>
+                                {% endif %}
+                                <span class="text-xs text-stone-500 ml-1 like-count">{{ post.reacciones.count }}</span>
+                            </button>
+                            <!-- Comments Button -->
+                            <button onclick="toggleComments({{ post.id }})" class="text-stone-600 hover:text-emerald-500 transition">
+                                <i class="far fa-comment"></i>
+                                <span class="text-xs text-stone-500 ml-1">{{ post.comentarios.count }}</span>
+                            </button>
+                        {% else %}
+                            <span class="text-stone-400">
+                                <i class="far fa-heart"></i>
+                                <span class="text-xs ml-1">{{ post.reacciones.count }}</span>
+                            </span>
+                            <span class="text-stone-400">
+                                <i class="far fa-comment"></i>
+                                <span class="text-xs ml-1">{{ post.comentarios.count }}</span>
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    {% if post.referencia %}
+                    <p class="text-sm text-stone-800">
+                        <span class="font-bold">{{ post.usuario.username }}</span> {{ post.referencia }}
+                    </p>
+                    {% endif %}
+
+                    <p class="text-[10px] text-stone-400 uppercase font-semibold tracking-wider">{{ post.fecha_creacion|timesince }} atrás</p>
+
+                    <!-- Comentarios -->
+                    {% if post.comentarios.all %}
+                    <div class="mt-3 pt-3 border-t border-stone-200 space-y-2 comments-section" id="comments-{{ post.id }}" style="display: none;">
+                        {% for comentario in post.comentarios.all %}
+                        <div class="bg-stone-50 p-2 rounded-lg text-sm">
+                            <div class="flex justify-between items-start">
+                                <p class="font-semibold text-emerald-700">{{ comentario.usuario.username }}</p>
+                                {% if user == comentario.usuario or user.is_superuser %}
+                                <a href="{% url 'eliminar_comentario' comentario.id %}" class="text-red-500 hover:text-red-700 text-xs" onclick="return confirm('¿Eliminar comentario?')">✕</a>
+                                {% endif %}
+                            </div>
+                            <p class="text-stone-700">{{ comentario.texto }}</p>
+                            <p class="text-[10px] text-stone-400 mt-1">{{ comentario.fecha|timesince }} atrás</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Formulario de Comentario -->
+                    {% if user.is_authenticated %}
+                    <form method="post" action="{% url 'agregar_comentario' post.id %}" class="mt-3 pt-3 border-t border-stone-200">
+                        {% csrf_token %}
+                        <div class="flex gap-2">
+                            <input type="text" name="texto" placeholder="Escribe un comentario..." 
+                                   class="flex-1 px-3 py-2 rounded-full bg-stone-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" 
+                                   required>
+                            <button type="submit" class="bg-emerald-500 text-white px-4 py-2 rounded-full text-sm font-bold hover:bg-emerald-600">
+                                Enviar
+                            </button>
+                        </div>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-16 text-stone-400 bg-white rounded-3xl border border-dashed border-stone-300">
+                <i class="fas fa-mountain text-5xl mb-3 opacity-20"></i>
+                <p class="text-sm">Aún no hay fotos. ¡Comparte tu primera aventura!</p>
+            </div>
+            {% endfor %}
+        </section>
+
+    </div>
+
+    <nav class="fixed bottom-0 left-0 right-0 glass border-t border-stone-200 p-3 flex justify-around items-center z-50 shadow-2xl">
+        <a href="{% url 'muro' %}" class="flex flex-col items-center text-emerald-600">
+            <i class="fas fa-home text-xl"></i>
+            <span class="text-[10px] font-bold mt-1">Inicio</span>
+        </a>
+        <button class="flex flex-col items-center text-stone-400 opacity-60">
+            <i class="fas fa-trophy text-xl"></i>
+            <span class="text-[10px] font-bold mt-1">Puntos</span>
+        </button>
+        <button class="flex flex-col items-center text-stone-400 opacity-60">
+            <i class="fas fa-user-circle text-xl"></i>
+            <span class="text-[10px] font-bold mt-1">Mi Perfil</span>
+        </button>
+    </nav>
+{% block scripts %}
+<script>
+    // Funciones para likes y comentarios
+    function toggleLike(postId, button) {
+        fetch(`/publicacion/${postId}/like/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const icon = button.querySelector('i');
+                    const countSpan = button.querySelector('.like-count');
+                    
+                    if (data.liked) {
+                        icon.classList.remove('far');
+                        icon.classList.add('fas');
+                        icon.style.color = '#ef4444';
+                    } else {
+                        icon.classList.remove('fas');
+                        icon.classList.add('far');
+                        icon.style.color = '';
+                    }
+                    
+                    countSpan.textContent = data.total_likes;
+                }
+            })
+            .catch(error => console.error('Error:', error));
+    }
+
+    function toggleComments(postId) {
+        const commentsDiv = document.getElementById(`comments-${postId}`);
+        if (commentsDiv) {
+            commentsDiv.style.display = commentsDiv.style.display === 'none' ? 'block' : 'none';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function(){
+        const fileInput = document.getElementById('file-upload');
+        if (!fileInput) return;
+        fileInput.addEventListener('change', function(e){
+            if (fileInput.files && fileInput.files.length > 0) {
+                const name = fileInput.files[0].name || '';
+                window.showFlash('Archivo "' + name + '" cargado correctamente.', 'success');
+            }
+        });
+    });
+</script>
+{% endblock %}
+{% endblock %}

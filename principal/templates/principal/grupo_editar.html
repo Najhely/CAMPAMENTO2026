@@ -1,0 +1,99 @@
+{% extends 'principal/base.html' %}
+{% block title %}Editar Grupo{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+    <h1 class="text-3xl font-bold mb-6">Editar Grupo: {{ grupo.nombre }}</h1>
+
+    <form method="POST" enctype="multipart/form-data" class="bg-white rounded-lg shadow-md p-6 space-y-4">
+        {% csrf_token %}
+
+        <!-- Nombre -->
+        <div>
+            <label for="id_nombre" class="block text-gray-700 font-bold mb-2">Nombre del Grupo *</label>
+            {{ form.nombre }}
+            {% if form.nombre.errors %}
+            <p class="text-red-500 text-sm mt-1">{{ form.nombre.errors }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Color -->
+        <div>
+            <label for="id_color" class="block text-gray-700 font-bold mb-2">Color</label>
+            {{ form.color }}
+            <small class="text-gray-500">Ejemplos: Rojo, Azul, Verde, #FF0000</small>
+            {% if form.color.errors %}
+            <p class="text-red-500 text-sm mt-1">{{ form.color.errors }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Rango de Edad -->
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label for="id_min_age" class="block text-gray-700 font-bold mb-2">Edad Mínima</label>
+                {{ form.min_age }}
+                {% if form.min_age.errors %}
+                <p class="text-red-500 text-sm mt-1">{{ form.min_age.errors }}</p>
+                {% endif %}
+            </div>
+            <div>
+                <label for="id_max_age" class="block text-gray-700 font-bold mb-2">Edad Máxima</label>
+                {{ form.max_age }}
+                {% if form.max_age.errors %}
+                <p class="text-red-500 text-sm mt-1">{{ form.max_age.errors }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Sexo -->
+        <div>
+            <label for="id_sexo" class="block text-gray-700 font-bold mb-2">Sexo</label>
+            {{ form.sexo }}
+            {% if form.sexo.errors %}
+            <p class="text-red-500 text-sm mt-1">{{ form.sexo.errors }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Unión -->
+        <div>
+            <label for="id_union" class="block text-gray-700 font-bold mb-2">Unión</label>
+            {{ form.union }}
+            {% if form.union.errors %}
+            <p class="text-red-500 text-sm mt-1">{{ form.union.errors }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Insignia (Imagen) -->
+        <div>
+            <label for="id_insignia" class="block text-gray-700 font-bold mb-2">Insignia (Imagen del grupo)</label>
+            {% if grupo.insignia %}
+            <div class="mb-4">
+                <p class="text-sm text-gray-600 mb-2">Insignia actual:</p>
+                <img src="{{ grupo.insignia.url }}" alt="Insignia" class="h-32 w-32 object-cover rounded border border-gray-300">
+            </div>
+            {% endif %}
+            {{ form.insignia }}
+            <small class="text-gray-500">Formato: JPG, PNG (Máximo 5MB)</small>
+            {% if form.insignia.errors %}
+            <p class="text-red-500 text-sm mt-1">{{ form.insignia.errors }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Información del Grupo -->
+        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+            <p class="text-sm text-gray-600"><strong>Puntos Totales:</strong> {{ grupo.puntos_totales }}</p>
+            <p class="text-sm text-gray-600"><strong>Miembros:</strong> {{ grupo.miembros.count }}</p>
+        </div>
+
+        <!-- Botones -->
+        <div class="flex gap-4 pt-4">
+            <button type="submit" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-bold">
+                ✅ Guardar Cambios
+            </button>
+            <a href="{% url 'listar_grupos' %}" class="bg-gray-400 text-white px-6 py-3 rounded-lg hover:bg-gray-500 transition-colors font-bold text-center">
+                ❌ Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

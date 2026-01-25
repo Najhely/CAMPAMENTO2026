@@ -1,0 +1,62 @@
+{% extends 'principal/base.html' %}
+{% block title %}Noticias{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-6xl">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold">📰 Noticias</h1>
+        <a href="{% url 'crear_noticia' %}" class="bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 transition-colors font-bold">
+            ➕ Nueva Noticia
+        </a>
+    </div>
+
+    <!-- Mensajes -->
+    {% if messages %}
+    <div class="mb-6">
+        {% for message in messages %}
+        <div class="p-4 mb-4 rounded-lg {% if message.tags %}{{ message.tags }}{% endif %}"
+             style="{% if 'error' in message.tags %}background-color: #fee; color: #c33;{% elif 'success' in message.tags %}background-color: #efe; color: #3c3;{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Lista de Noticias -->
+    {% if noticias %}
+    <div class="space-y-4">
+        {% for noticia in noticias %}
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-amber-500">
+            <div class="flex justify-between items-start">
+                <div class="flex-1">
+                    <h3 class="text-2xl font-bold mb-2">{{ noticia.titulo }}</h3>
+                    <p class="text-gray-700 mb-4 line-clamp-3">{{ noticia.contenido }}</p>
+                    <div class="flex justify-between items-center text-sm text-gray-500">
+                        <span>
+                            <strong>Por:</strong> {{ noticia.autor.username }}<br>
+                            <strong>Fecha:</strong> {{ noticia.fecha_publicacion|date:"d/m/Y H:i" }}
+                        </span>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <a href="{% url 'editar_noticia' noticia.id %}" class="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 text-sm font-bold">
+                        ✏️
+                    </a>
+                    <a href="{% url 'eliminar_noticia' noticia.id %}" class="bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600 text-sm font-bold">
+                        🗑️
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-16 bg-white rounded-lg border border-gray-200">
+        <p class="text-gray-500 text-lg">No hay noticias publicadas</p>
+        <a href="{% url 'crear_noticia' %}" class="inline-block mt-4 bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 font-bold">
+            Crear primera noticia
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

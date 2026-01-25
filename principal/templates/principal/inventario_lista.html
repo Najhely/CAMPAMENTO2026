@@ -1,0 +1,91 @@
+{% extends 'principal/base.html' %}
+
+{% block extra_head %}
+<style>
+    .color-dot {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: 2px solid #d1d5db;
+        margin-right: 8px;
+        vertical-align: middle;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto my-10 bg-white p-8 rounded-2xl shadow-sm border border-stone-100">
+    <h2 class="text-2xl font-bold text-stone-800 mb-6 flex items-center gap-2">
+        <span class="p-2 bg-indigo-100 text-indigo-600 rounded-lg">📦</span>
+        Inventario Global
+    </h2>
+    
+    <a href="{% url 'crear_inventario' %}" class="mb-4 inline-block bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-indigo-700">
+        + Agregar Artículo
+    </a>
+    
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-stone-200">
+                <tr>
+                    <th class="p-3 text-left">Artículo</th>
+                    <th class="p-3 text-left">Talla</th>
+                    <th class="p-3 text-left">Color</th>
+                    <th class="p-3 text-center">Stock Actual</th>
+                    <th class="p-3 text-left">Registrado por</th>
+                    <th class="p-3 text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr class="border-b hover:bg-stone-50">
+                    <td class="p-3 font-medium">{{ item.get_articulo_display }}</td>
+                    <td class="p-3">
+                        <span class="px-2 py-1 bg-stone-100 rounded text-xs">{{ item.talla|upper }}</span>
+                    </td>
+                    <td class="p-3">
+                        {% if item.color_hex %}
+                            <span class="color-dot" style="background-color: {{ item.color_hex }};"></span>
+                            <span class="font-medium">{{ item.color_nombre }}</span>
+                            <span class="text-stone-400 text-xs ml-2">({{ item.color_hex }})</span>
+                        {% else %}
+                            <span class="text-stone-400">Sin color</span>
+                        {% endif %}
+                    </td>
+                    <td class="p-3 text-center">
+                        {% if item.stock_actual > 10 %}
+                            <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full font-semibold">{{ item.stock_actual }}</span>
+                        {% elif item.stock_actual > 0 %}
+                            <span class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full font-semibold">{{ item.stock_actual }}</span>
+                        {% else %}
+                            <span class="px-3 py-1 bg-red-100 text-red-700 rounded-full font-semibold">{{ item.stock_actual }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="p-3 text-stone-600">{{ item.autor.username|default:"Sistema" }}</td>
+                    <td class="p-3 text-center space-x-2">
+                        <a href="{% url 'editar_inventario' item.id %}" class="text-blue-600 hover:underline font-medium">Editar</a>
+                        <a href="{% url 'eliminar_inventario' item.id %}" class="text-red-600 hover:underline font-medium" onclick="return confirm('¿Eliminar este artículo?')">Eliminar</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="p-8 text-center text-stone-400">
+                        <div class="text-4xl mb-2">📦</div>
+                        <p class="font-medium">No hay artículos en inventario</p>
+                        <p class="text-sm mt-1">Comienza agregando tu primer artículo</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="mt-6 flex justify-between items-center">
+        <a href="{% url 'dashboard' %}" class="text-indigo-600 hover:underline font-medium">← Volver al Dashboard</a>
+        <div class="text-sm text-stone-500">
+            Total de artículos: <span class="font-semibold text-stone-700">{{ items|length }}</span>
+        </div>
+    </div>
+</div>
+{% endblock %}

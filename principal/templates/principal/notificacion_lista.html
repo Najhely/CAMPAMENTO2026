@@ -1,0 +1,71 @@
+{% extends 'principal/base.html' %}
+{% block title %}Notificaciones{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold">
+            🔔 Notificaciones
+            {% if no_leidas > 0 %}
+            <span class="bg-red-500 text-white px-3 py-1 rounded-full text-sm ml-2">{{ no_leidas }} nuevas</span>
+            {% endif %}
+        </h1>
+        {% if no_leidas > 0 %}
+        <a href="{% url 'marcar_todas_leidas' %}" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-bold">
+            ✓ Marcar todas como leídas
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- Mensajes -->
+    {% if messages %}
+    <div class="mb-6">
+        {% for message in messages %}
+        <div class="p-4 mb-4 rounded-lg {% if message.tags %}{{ message.tags }}{% endif %}"
+             style="{% if 'error' in message.tags %}background-color: #fee; color: #c33;{% elif 'success' in message.tags %}background-color: #efe; color: #3c3;{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Lista de Notificaciones -->
+    {% if notificaciones %}
+    <div class="space-y-3">
+        {% for notif in notificaciones %}
+        <div class="bg-white rounded-lg shadow p-4 {% if not notif.leida %}border-l-4 border-blue-500 bg-blue-50{% else %}opacity-75{% endif %}">
+            <div class="flex justify-between items-start">
+                <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-1">
+                        <h3 class="text-lg font-bold">{{ notif.titulo }}</h3>
+                        <span class="px-2 py-1 rounded text-xs font-bold {% if notif.tipo == 'actividad' %}bg-green-100 text-green-800{% elif notif.tipo == 'noticia' %}bg-amber-100 text-amber-800{% elif notif.tipo == 'alerta' %}bg-red-100 text-red-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+                            {{ notif.get_tipo_display }}
+                        </span>
+                        {% if not notif.leida %}
+                        <span class="bg-red-500 w-3 h-3 rounded-full"></span>
+                        {% endif %}
+                    </div>
+                    <p class="text-gray-700 mb-2">{{ notif.mensaje }}</p>
+                    <p class="text-sm text-gray-500">{{ notif.fecha_creacion|timesince }} atrás</p>
+                </div>
+                <div class="flex gap-2">
+                    {% if not notif.leida %}
+                    <a href="{% url 'marcar_notificacion_leida' notif.id %}" class="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 text-sm font-bold">
+                        ✓
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'eliminar_notificacion' notif.id %}" class="bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600 text-sm font-bold">
+                        🗑️
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-16 bg-white rounded-lg border border-gray-200">
+        <p class="text-gray-500 text-lg">No tienes notificaciones</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

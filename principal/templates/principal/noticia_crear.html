@@ -1,0 +1,40 @@
+{% extends 'principal/base.html' %}
+{% block title %}Crear Noticia{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+    <h1 class="text-3xl font-bold mb-6">Crear Nueva Noticia</h1>
+
+    <form method="POST" class="bg-white rounded-lg shadow-md p-6 space-y-4">
+        {% csrf_token %}
+
+        <!-- Título -->
+        <div>
+            <label for="id_titulo" class="block text-gray-700 font-bold mb-2">Título *</label>
+            {{ form.titulo }}
+            {% if form.titulo.errors %}
+            <p class="text-red-500 text-sm mt-1">{{ form.titulo.errors }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Contenido -->
+        <div>
+            <label for="id_contenido" class="block text-gray-700 font-bold mb-2">Contenido *</label>
+            {{ form.contenido }}
+            {% if form.contenido.errors %}
+            <p class="text-red-500 text-sm mt-1">{{ form.contenido.errors }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Botones -->
+        <div class="flex gap-4 pt-4">
+            <button type="submit" class="bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 transition-colors font-bold">
+                ✅ Publicar Noticia
+            </button>
+            <a href="{% url 'listar_noticias' %}" class="bg-gray-400 text-white px-6 py-3 rounded-lg hover:bg-gray-500 transition-colors font-bold text-center">
+                ❌ Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

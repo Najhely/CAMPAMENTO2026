@@ -1,0 +1,56 @@
+{% extends 'principal/base.html' %}
+{% block title %}Crear Actividad{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+    <h1 class="text-3xl font-bold mb-6">Crear Nueva Actividad</h1>
+
+    <form method="POST" class="bg-white rounded-lg shadow-md p-6 space-y-4">
+        {% csrf_token %}
+
+        <!-- Título -->
+        <div>
+            <label for="id_titulo" class="block text-gray-700 font-bold mb-2">Título *</label>
+            {{ form.titulo }}
+            {% if form.titulo.errors %}
+            <p class="text-red-500 text-sm mt-1">{{ form.titulo.errors }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Hora de Inicio -->
+        <div>
+            <label for="id_hora_inicio" class="block text-gray-700 font-bold mb-2">Hora de Inicio *</label>
+            {{ form.hora_inicio }}
+            {% if form.hora_inicio.errors %}
+            <p class="text-red-500 text-sm mt-1">{{ form.hora_inicio.errors }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Ubicación -->
+        <div>
+            <label for="id_ubicacion" class="block text-gray-700 font-bold mb-2">Ubicación *</label>
+            {{ form.ubicacion }}
+            {% if form.ubicacion.errors %}
+            <p class="text-red-500 text-sm mt-1">{{ form.ubicacion.errors }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Es Obligatoria -->
+        <div class="flex items-center">
+            <label for="id_es_obligatoria" class="text-gray-700 font-bold">
+                {{ form.es_obligatoria }} Marcar como obligatoria
+            </label>
+        </div>
+
+        <!-- Botones -->
+        <div class="flex gap-4 pt-4">
+            <button type="submit" class="bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 transition-colors font-bold">
+                ✅ Crear Actividad
+            </button>
+            <a href="{% url 'listar_actividades' %}" class="bg-gray-400 text-white px-6 py-3 rounded-lg hover:bg-gray-500 transition-colors font-bold text-center">
+                ❌ Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

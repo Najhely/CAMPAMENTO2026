@@ -1,0 +1,333 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎯 Ruleta de Equipos - Campamento</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #1e1b4b 0%, #4338ca 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            color: white;
+        }
+        
+        @keyframes bounce-slow {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+        .bounce-animation { animation: bounce-slow 2s infinite; }
+
+        .pulse-animation { animation: pulse 2s infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.05); }
+        }
+
+        .rainbow-text {
+            background: linear-gradient(to right, #ef4444, #f59e0b, #10b981, #3b82f6, #8b5cf6, #ef4444);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: rainbow 3s linear infinite;
+        }
+        @keyframes rainbow { to { background-position: 200% center; } }
+
+        #confetti-canvas {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 9999;
+        }
+
+        .fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <canvas id="confetti-canvas"></canvas>
+
+    <div id="estado-espera" class="text-center">
+        <div class="bg-white rounded-3xl p-16 shadow-2xl max-w-3xl border-4 border-purple-500">
+            <div class="text-9xl mb-8 bounce-animation">🎯</div>
+            <h1 class="text-6xl font-bold text-gray-800 mb-6">Ruleta de Equipos</h1>
+            <p class="text-3xl text-gray-600 mb-12">Esperando nueva inscripción...</p>
+            <div class="flex justify-center gap-3">
+                <div class="w-6 h-6 bg-indigo-600 rounded-full pulse-animation"></div>
+                <div class="w-6 h-6 bg-indigo-600 rounded-full pulse-animation" style="animation-delay: 0.2s;"></div>
+                <div class="w-6 h-6 bg-indigo-600 rounded-full pulse-animation" style="animation-delay: 0.4s;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="ruleta-container" class="hidden text-center w-full max-w-6xl px-4 fade-in">
+        <h2 class="text-6xl font-extrabold text-white mb-4 italic">¡BIENVENIDO!</h2>
+        <div class="text-7xl font-black mb-10 rainbow-text uppercase tracking-tighter" id="nombre-campamentista"></div>
+        
+        <div class="relative w-[550px] h-[550px] mx-auto">
+            <div class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-6 z-30">
+                <div class="w-0 h-0 border-l-[35px] border-l-transparent border-r-[35px] border-r-transparent border-t-[60px] border-t-yellow-400 drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)]"></div>
+            </div>
+            
+            <div id="ruleta" class="w-full h-full rounded-full relative overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.5)] border-[15px] border-yellow-400 bg-gray-800" style="transform: rotate(0deg);"></div>
+            
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-gradient-to-br from-yellow-300 to-yellow-600 rounded-full border-8 border-white shadow-2xl z-10 flex items-center justify-center">
+                <span class="text-6xl">🔥</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="resultado-final" class="hidden text-center w-full max-w-5xl px-4">
+        <div class="bg-white rounded-[40px] p-16 shadow-[0_20px_60px_rgba(0,0,0,0.4)] fade-in border-8" id="borde-resultado" style="border-color: #10B981;">
+            <div class="text-9xl mb-6 bounce-animation">🎉</div>
+            <h3 class="text-5xl font-bold mb-4 text-gray-800">¡TE UNES A!</h3>
+            
+            <div class="mb-8">
+                <div class="text-5xl font-black text-indigo-900 mb-2 uppercase" id="nombre-resultado"></div>
+                <div class="text-2xl text-gray-500 font-medium" id="iglesia-resultado"></div>
+            </div>
+            
+            <div class="inline-block px-20 py-10 rounded-full mb-10 transform scale-125 shadow-xl transition-all" id="equipo-badge">
+                <div class="text-7xl font-black text-white tracking-widest drop-shadow-md" id="equipo-nombre"></div>
+            </div>
+            
+            <div class="mt-12 text-gray-400 text-2xl font-semibold">
+                Siguiente turno en <span id="countdown" class="text-4xl text-indigo-600">8</span>...
+            </div>
+        </div>
+    </div>
+
+    <!-- Elementos de Audio -->
+    <audio id="spin-sound" src="https://assets.mixkit.co/active_storage/sfx/2004/2004-preview.mp3"></audio>
+    <audio id="win-sound" src="https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3"></audio>
+    <audio id="ruleta-giro-sound" preload="auto">
+        <source src="{% static 'sonido/RULE.mp3' %}" type="audio/mpeg">
+        <source src="/media/sonido/RULE.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        let ultimoIdProcesado = 0;
+        let esPrimeraCarga = true;
+        let audioRuleta = null;
+        
+        // ✅ CORREGIDO: Usar color_hex en lugar de color
+        const equiposBase = {{ grupos_json|safe }};
+        let equiposDisponibles = equiposBase.length > 0 ? equiposBase.map(eq => ({
+            nombre: eq.nombre,
+            color: eq.color_hex,  // ✅ CAMBIO IMPORTANTE
+            color_nombre: eq.color_nombre,
+            puntos: eq.puntos_totales
+        })) : [
+            { nombre: "EQUIPO 1", color: "#EF4444" },
+            { nombre: "EQUIPO 2", color: "#3B82F6" },
+            { nombre: "EQUIPO 3", color: "#F59E0B" },
+            { nombre: "EQUIPO 4", color: "#10B981" }
+        ];
+
+        console.log('Equipos disponibles:', equiposDisponibles); // Para debug
+
+        function crearRuleta() {
+            const ruleta = document.getElementById('ruleta');
+            const n = equiposDisponibles.length;
+            const deg = 360 / n;
+            let html = '';
+
+            equiposDisponibles.forEach((eq, i) => {
+                const rotation = i * deg;
+                const radianes = (deg * Math.PI) / 180;
+                const x = 50 + 50 * Math.sin(radianes);
+                const y = 50 - 50 * Math.cos(radianes);
+                
+                html += `
+                    <div class="absolute w-full h-full origin-center" style="transform: rotate(${rotation}deg);">
+                        <div class="absolute w-full h-full" 
+                             style="background: ${eq.color}; clip-path: polygon(50% 50%, 50% 0%, ${x}% ${y}%);">
+                            <div class="absolute top-20 left-1/2 -translate-x-1/2 text-white font-black text-2xl tracking-tighter" 
+                                 style="transform: rotate(${deg/2}deg); text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
+                                ${eq.nombre}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            ruleta.innerHTML = html;
+        }
+
+        function animarGiro(nombreEquipo) {
+            const index = equiposDisponibles.findIndex(e => e.nombre === nombreEquipo);
+            if (index === -1) {
+                console.warn('Equipo no encontrado:', nombreEquipo);
+                return 4000;
+            }
+
+            const degPorSeg = 360 / equiposDisponibles.length;
+            const vueltasBase = 360 * 5;
+            const offset = 360 - (index * degPorSeg) - (degPorSeg / 2);
+            const totalDeg = vueltasBase + offset;
+
+            const ruleta = document.getElementById('ruleta');
+            ruleta.style.transition = 'transform 4s cubic-bezier(0.15, 0, 0.15, 1)';
+            ruleta.style.transform = `rotate(${totalDeg}deg)`;
+
+            // ✅ MEJORADO: Reproducir sonido con mejor manejo de errores
+            try {
+                if (audioRuleta) {
+                    audioRuleta.currentTime = 0;
+                    audioRuleta.volume = 0.8;
+                    const playPromise = audioRuleta.play();
+                    
+                    if (playPromise !== undefined) {
+                        playPromise.then(() => {
+                            console.log('Audio de ruleta reproduciendo correctamente');
+                        }).catch(error => {
+                            console.warn('Error reproduciendo audio de ruleta:', error);
+                            // Fallback al audio por defecto
+                            document.getElementById('spin-sound').play().catch(() => {});
+                        });
+                    }
+                } else {
+                    console.warn('Audio de ruleta no inicializado');
+                    document.getElementById('spin-sound').play().catch(() => {});
+                }
+            } catch (e) {
+                console.error('Error crítico con audio:', e);
+            }
+
+            return 4000;
+        }
+
+        function lanzarConfeti() {
+            const canvas = document.getElementById('confetti-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            let particles = Array.from({ length: 150 }).map(() => ({
+                x: Math.random() * canvas.width,
+                y: -10,
+                v: Math.random() * 5 + 2,
+                size: Math.random() * 8 + 4,
+                color: `hsl(${Math.random() * 360}, 70%, 50%)`
+            }));
+
+            function frame() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particles.forEach(p => {
+                    p.y += p.v;
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(p.x, p.y, p.size, p.size);
+                });
+                if (particles.some(p => p.y < canvas.height)) requestAnimationFrame(frame);
+            }
+            frame();
+        }
+
+        async function polling() {
+            try {
+                const res = await fetch('{% url "ultima_inscripcion_ajax" %}');
+                if (!res.ok) return;
+                const data = await res.json();
+
+                if (data.id > ultimoIdProcesado) {
+                    if (esPrimeraCarga) {
+                        ultimoIdProcesado = data.id;
+                        esPrimeraCarga = false;
+                        return;
+                    }
+                    
+                    ultimoIdProcesado = data.id;
+                    iniciarSecuencia(data);
+                }
+            } catch (e) { 
+                console.error("Error API:", e); 
+            }
+        }
+
+        function iniciarSecuencia(data) {
+            if (audioRuleta) {
+                audioRuleta.pause();
+                audioRuleta.currentTime = 0;
+            }
+            
+            document.getElementById('estado-espera').classList.add('hidden');
+            document.getElementById('resultado-final').classList.add('hidden');
+            document.getElementById('ruleta-container').classList.remove('hidden');
+            document.getElementById('nombre-campamentista').textContent = data.nombre;
+
+            const r = document.getElementById('ruleta');
+            r.style.transition = 'none';
+            r.style.transform = 'rotate(0deg)';
+
+            setTimeout(() => {
+                const tiempo = animarGiro(data.equipo);
+                
+                setTimeout(() => {
+                    if (audioRuleta) {
+                        audioRuleta.pause();
+                        audioRuleta.currentTime = 0;
+                    }
+                    
+                    document.getElementById('ruleta-container').classList.add('hidden');
+                    document.getElementById('resultado-final').classList.remove('hidden');
+                    document.getElementById('nombre-resultado').textContent = data.nombre;
+                    document.getElementById('iglesia-resultado').textContent = data.iglesia;
+                    document.getElementById('equipo-nombre').textContent = data.equipo;
+                    document.getElementById('equipo-badge').style.backgroundColor = data.color;
+                    document.getElementById('borde-resultado').style.borderColor = data.color;
+
+                    document.getElementById('win-sound').play().catch(() => {});
+                    lanzarConfeti();
+
+                    let c = 8;
+                    const timer = setInterval(() => {
+                        c--;
+                        document.getElementById('countdown').textContent = c;
+                        if (c <= 0) {
+                            clearInterval(timer);
+                            document.getElementById('resultado-final').classList.add('hidden');
+                            document.getElementById('estado-espera').classList.remove('hidden');
+                        }
+                    }, 1000);
+                }, tiempo + 500);
+            }, 100);
+        }
+
+        function inicializar() {
+            crearRuleta();
+            
+            // ✅ MEJORADO: Mejor inicialización del audio
+            audioRuleta = document.getElementById('ruleta-giro-sound');
+            
+            if (audioRuleta) {
+                audioRuleta.load();
+                
+                audioRuleta.addEventListener('canplaythrough', function() {
+                    console.log('✅ Audio de ruleta cargado correctamente');
+                }, { once: true });
+                
+                audioRuleta.addEventListener('error', function(e) {
+                    console.error('❌ Error cargando audio de ruleta:', e);
+                    console.log('Intentando cargar desde:', audioRuleta.currentSrc);
+                });
+            } else {
+                console.warn('⚠️ Elemento de audio no encontrado');
+            }
+            
+            // Habilitar audio con un clic del usuario (requerido por navegadores)
+            document.addEventListener('click', function habilitarAudio() {
+                if (audioRuleta) {
+                    audioRuleta.play().then(() => {
+                        audioRuleta.pause();
+                        audioRuleta.currentTime = 0;
+                        console.log('✅ Audio habilitado por interacción del usuario');
+                    }).catch(() => {});
+                }
+                document.removeEventListener('click', habilitarAudio);
+            }, { once: true });
+            
+            setInterval(polling, 2000);
+        }
+
+        document.addEventListener('DOMContentLoaded', inicializar);
+    </script>
+</body>
+</html>

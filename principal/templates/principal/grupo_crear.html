@@ -1,0 +1,145 @@
+{% extends 'principal/base.html' %}
+{% block title %}Crear Grupo{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+    <h1 class="text-3xl font-bold mb-6">Crear Nuevo Grupo</h1>
+
+    <form method="POST" enctype="multipart/form-data" class="bg-white rounded-lg shadow-md p-6 space-y-4">
+        {% csrf_token %}
+
+        <!-- Nombre -->
+        <div>
+            <label for="id_nombre" class="block text-gray-700 font-bold mb-2">Nombre del Grupo *</label>
+            {{ form.nombre }}
+            {% if form.nombre.errors %}
+            <p class="text-red-500 text-sm mt-1">{{ form.nombre.errors }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Color Nombre -->
+        <div>
+            <label for="id_color_nombre" class="block text-gray-700 font-bold mb-2">Nombre del Color *</label>
+            {{ form.color_nombre }}
+            <small class="text-gray-500">Ejemplos: Rojo, Azul, Verde, Amarillo</small>
+            {% if form.color_nombre.errors %}
+            <p class="text-red-500 text-sm mt-1">{{ form.color_nombre.errors }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Color Hex (Selector de Color) -->
+        <div>
+            <label for="id_color_hex" class="block text-gray-700 font-bold mb-2">Color del Equipo *</label>
+            <div class="flex items-center space-x-4">
+                <input type="color" id="colorPicker" class="w-16 h-16 cursor-pointer" 
+                       value="{{ form.color_hex.value|default:'#FF0000' }}">
+                {{ form.color_hex }}
+            </div>
+            <small class="text-gray-500">Selecciona el color o escribe un código hexadecimal (#FF0000)</small>
+            {% if form.color_hex.errors %}
+            <p class="text-red-500 text-sm mt-1">{{ form.color_hex.errors }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Vista previa del color -->
+        <div class="p-4 rounded-lg border" id="colorPreview">
+            <p class="text-sm font-medium">Vista previa:</p>
+            <div class="mt-2 h-10 rounded-lg flex items-center justify-center text-white font-bold" 
+                 id="previewBox">
+                Color del equipo
+            </div>
+        </div>
+
+        <!-- Rango de Edad -->
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label for="id_min_age" class="block text-gray-700 font-bold mb-2">Edad Mínima</label>
+                {{ form.min_age }}
+                {% if form.min_age.errors %}
+                <p class="text-red-500 text-sm mt-1">{{ form.min_age.errors }}</p>
+                {% endif %}
+            </div>
+            <div>
+                <label for="id_max_age" class="block text-gray-700 font-bold mb-2">Edad Máxima</label>
+                {{ form.max_age }}
+                {% if form.max_age.errors %}
+                <p class="text-red-500 text-sm mt-1">{{ form.max_age.errors }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Sexo -->
+        <div>
+            <label for="id_sexo" class="block text-gray-700 font-bold mb-2">Sexo</label>
+            {{ form.sexo }}
+            {% if form.sexo.errors %}
+            <p class="text-red-500 text-sm mt-1">{{ form.sexo.errors }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Unión -->
+        <div>
+            <label for="id_union" class="block text-gray-700 font-bold mb-2">Unión</label>
+            {{ form.union }}
+            {% if form.union.errors %}
+            <p class="text-red-500 text-sm mt-1">{{ form.union.errors }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Insignia (Imagen) -->
+        <div>
+            <label for="id_insignia" class="block text-gray-700 font-bold mb-2">Insignia (Imagen del grupo)</label>
+            {{ form.insignia }}
+            <small class="text-gray-500">Formato: JPG, PNG (Máximo 5MB)</small>
+            {% if form.insignia.errors %}
+            <p class="text-red-500 text-sm mt-1">{{ form.insignia.errors }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Botones -->
+        <div class="flex gap-4 pt-4">
+            <button type="submit" class="bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 transition-colors font-bold">
+                ✅ Crear Grupo
+            </button>
+            <a href="{% url 'listar_grupos' %}" class="bg-gray-400 text-white px-6 py-3 rounded-lg hover:bg-gray-500 transition-colors font-bold text-center">
+                ❌ Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const colorPicker = document.getElementById('colorPicker');
+    const colorHexInput = document.getElementById('id_color_hex');
+    const previewBox = document.getElementById('previewBox');
+    
+    // Sincronizar color picker con input
+    colorPicker.addEventListener('input', function() {
+        colorHexInput.value = this.value;
+        updatePreview();
+    });
+    
+    colorHexInput.addEventListener('input', function() {
+        colorPicker.value = this.value;
+        updatePreview();
+    });
+    
+    function updatePreview() {
+        const color = colorHexInput.value;
+        previewBox.style.backgroundColor = color;
+        
+        // Determinar si el color es claro u oscuro para el texto
+        const r = parseInt(color.substr(1, 2), 16);
+        const g = parseInt(color.substr(3, 2), 16);
+        const b = parseInt(color.substr(5, 2), 16);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        
+        previewBox.style.color = brightness > 128 ? '#000000' : '#FFFFFF';
+    }
+    
+    // Inicializar vista previa
+    updatePreview();
+});
+</script>
+{% endblock %}

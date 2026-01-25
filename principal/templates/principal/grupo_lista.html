@@ -1,0 +1,98 @@
+{% extends 'principal/base.html' %}
+{% block title %}Gestión de Grupos{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-6xl">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold">Gestión de Grupos</h1>
+        <a href="{% url 'crear_grupo' %}" class="bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 transition-colors font-bold">
+            ➕ Crear Grupo
+        </a>
+    </div>
+
+    <!-- Mensajes -->
+    {% if messages %}
+    <div class="mb-6">
+        {% for message in messages %}
+        <div class="p-4 mb-4 rounded-lg {% if message.tags %}{{ message.tags }}{% endif %}"
+             style="{% if 'error' in message.tags %}background-color: #fee; color: #c33;{% elif 'success' in message.tags %}background-color: #efe; color: #3c3;{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Tabla de Grupos -->
+    {% if grupos %}
+    <div class="overflow-x-auto shadow-md rounded-lg">
+        <table class="w-full bg-white">
+            <thead class="bg-emerald-600 text-white">
+                <tr>
+                    <th class="px-6 py-3 text-left">Nombre</th>
+                    <th class="px-6 py-3 text-left">Color</th>
+                    <th class="px-6 py-3 text-center">Puntos</th>
+                    <th class="px-6 py-3 text-center">Miembros</th>
+                    <th class="px-6 py-3 text-center">Edad</th>
+                    <th class="px-6 py-3 text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for grupo in grupos %}
+                <tr class="border-b border-gray-200 hover:bg-gray-50">
+                    <td class="px-6 py-4 font-semibold">{{ grupo.nombre }}</td>
+                    <td class="px-6 py-4">
+                        {% if grupo.color %}
+                        <span class="inline-block w-6 h-6 rounded border border-gray-300" style="background-color: {{ grupo.color|lower }};"></span>
+                        {{ grupo.color }}
+                        {% else %}
+                        <span class="text-gray-400">N/A</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-center font-bold text-emerald-600">{{ grupo.puntos_totales }}</td>
+                    <td class="px-6 py-4 text-center">{{ grupo.miembros.count }}</td>
+                    <td class="px-6 py-4 text-center">
+                        {% if grupo.min_age or grupo.max_age %}
+                            {{ grupo.min_age|default:"?" }} - {{ grupo.max_age|default:"?" }}
+                        {% else %}
+                            <span class="text-gray-400">N/A</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-center space-x-2">
+                        <a href="{% url 'editar_grupo' grupo.id %}" class="inline-block bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 text-sm font-bold">
+                            ✏️ Editar
+                        </a>
+                        <a href="{% url 'eliminar_grupo' grupo.id %}" class="inline-block bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600 text-sm font-bold">
+                            🗑️ Eliminar
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-16 bg-white rounded-lg border border-gray-200">
+        <p class="text-gray-500 text-lg">No hay grupos registrados</p>
+        <a href="{% url 'crear_grupo' %}" class="inline-block mt-4 bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 font-bold">
+            Crear el primer grupo
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- Estadísticas -->
+    <div class="mt-8 grid grid-cols-3 gap-4">
+        <div class="bg-white p-6 rounded-lg shadow text-center">
+            <p class="text-gray-500 text-sm uppercase">Total de Grupos</p>
+            <p class="text-3xl font-bold text-emerald-600">{{ grupos|length }}</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow text-center">
+            <p class="text-gray-500 text-sm uppercase">Puntos Totales</p>
+            <p class="text-3xl font-bold text-emerald-600">{% widthratio sum_puntos 1 1 %}{{ sum_puntos|default:"0" }}</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow text-center">
+            <p class="text-gray-500 text-sm uppercase">Campamentistas</p>
+            <p class="text-3xl font-bold text-emerald-600">{% widthratio total_miembros 1 1 %}{{ total_miembros|default:"0" }}</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
